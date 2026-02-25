@@ -24,13 +24,18 @@ export default async function handler(req, res) {
     const rows = await sheet.getRows();
 
     if (req.method === 'POST') {
-      const { handle, picked } = req.body;
+      const { handle, picked, rejected } = req.body;
       const row = rows.find(r => r.get('Creator Handle')?.toLowerCase() === handle?.toLowerCase());
       if (row) {
-        row.set('Picked', picked ? 'YES' : '');
-        row.set('Picked At', picked ? new Date().toISOString() : '');
+        if (rejected) {
+          row.set('Picked', 'REJECTED');
+          row.set('Picked At', new Date().toISOString());
+        } else {
+          row.set('Picked', picked ? 'YES' : '');
+          row.set('Picked At', picked ? new Date().toISOString() : '');
+        }
         await row.save();
-        return res.json({ ok: true, handle, picked });
+        return res.json({ ok: true, handle, picked, rejected });
       }
       return res.status(404).json({ error: 'not found' });
     }
@@ -60,7 +65,8 @@ export default async function handler(req, res) {
       notes: r.get('Notes') || '',
       top_post_url: r.get('Top Post (Last Month)') || '',
       top_post_likes: r.get('Top Post Likes (Last Month)') || '',
-      picked: r.get('Picked') === 'YES'
+      picked: r.get('Picked') === 'YES',
+      rejected: r.get('Picked') === 'REJECTED'
     }));
     res.json(creators);
   } catch (e) {

@@ -43,6 +43,17 @@ td input[type=checkbox] { width: 18px; height: 18px; accent-color: #00a854; curs
 .badge-skip { background: #3a1a1a; color: #e65b5b; }
 .badge-meets { background: #1a3a1a; color: #5be65b; }
 .badge-not-meets { background: #3a1a1a; color: #e65b5b; }
+/* Category color badges */
+.cat-tech { background: #1a2a3a; color: #5b9ee6; }
+.cat-dev { background: #1a3a2a; color: #5be6a8; }
+.cat-crypto { background: #3a3a1a; color: #e6d45b; }
+.cat-founder { background: #2a1a3a; color: #b05be6; }
+.cat-video { background: #3a1a2a; color: #e65b9e; }
+.cat-cjk { background: #1a3a3a; color: #5be6e6; }
+.cat-educator { background: #2a3a1a; color: #a8e65b; }
+.cat-news { background: #2a2a3a; color: #8888e6; }
+.cat-lifestyle { background: #3a2a2a; color: #e6a88a; }
+.cat-inactive { background: #2a2a2a; color: #666; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .loading { text-align: center; padding: 60px; color: #888; font-size: 18px; }
 
@@ -58,11 +69,12 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
 
 /* Card/Grid view */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(550px, 1fr)); gap: 16px; }
-.card { background: #1a1a1a; border-radius: 12px; border: 2px solid #333; overflow: hidden; transition: all 0.2s; }
+.card { background: #1a1a1a; border-radius: 12px; border: 2px solid #333; overflow: hidden; transition: all 0.3s; }
 .card.picked { border-color: #00a854; box-shadow: 0 0 12px rgba(0,168,84,0.3); }
+.card.focused { border-color: #1d9bf0; box-shadow: 0 0 12px rgba(29,155,240,0.3); }
+.card.removing { opacity: 0; transform: scale(0.95); pointer-events: none; }
 .card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #222; }
-.card-header label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
-.card-header input[type=checkbox] { width: 20px; height: 20px; accent-color: #00a854; cursor: pointer; }
+.card-header .card-info { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .handle-link { color: #1d9bf0; text-decoration: none; }
 .handle-link:hover { text-decoration: underline; }
 .meta { display: flex; gap: 8px; font-size: 12px; flex-wrap: wrap; }
@@ -73,6 +85,20 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
 .stats { display: flex; gap: 16px; }
 .stats span { color: #aaa; }
 .no-post { color: #666; padding: 20px; text-align: center; }
+.pick-btn { padding: 5px 14px; border-radius: 8px; border: 1px solid #00a854; background: transparent; color: #00a854; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; }
+.pick-btn:hover { background: #00a854; color: #fff; }
+.pick-btn.active { background: #00a854; color: #fff; }
+.reject-btn { padding: 5px 14px; border-radius: 8px; border: 1px solid #444; background: transparent; color: #888; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; }
+.reject-btn:hover { background: #3a1a1a; border-color: #e65b5b; color: #e65b5b; }
+.card-actions-top { display: flex; gap: 8px; padding: 10px 16px; justify-content: flex-end; border-bottom: 1px solid #222; }
+.kbd-hint { position: fixed; bottom: 16px; right: 16px; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #666; z-index: 100; line-height: 1.8; }
+.kbd-hint kbd { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 1px 6px; font-family: monospace; color: #aaa; }
+
+/* Pagination */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 20px; color: #aaa; font-size: 14px; }
+.pagination button { padding: 8px 18px; border-radius: 8px; border: 1px solid #555; background: #2a2a2a; color: #fff; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+.pagination button:hover:not(:disabled) { background: #3a3a3a; }
+.pagination button:disabled { opacity: 0.3; cursor: default; }
 
 /* Modal */
 .export-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
@@ -86,8 +112,8 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
 
 <div class="toolbar">
   <div class="view-toggle">
-    <button id="btnTable" class="active" onclick="setView('table')">📊 Table</button>
-    <button id="btnCards" onclick="setView('cards')">🃏 Cards</button>
+    <button id="btnTable" onclick="setView('table')">📊 Table</button>
+    <button id="btnCards" class="active" onclick="setView('cards')">🃏 Cards</button>
   </div>
   <input type="text" class="search" placeholder="🔍 Search handle/name/bio..." oninput="applyFilters()">
   <select id="fCommunity" onchange="applyFilters()"><option value="">Community/Paid</option></select>
@@ -105,15 +131,19 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
   <span class="saving" id="saveStatus"></span>
 </div>
 
-<div id="tableView" class="table-wrap">
+<div id="tableView" class="table-wrap" style="display:none">
   <table id="mainTable">
     <thead><tr id="headerRow"></tr></thead>
     <tbody id="tbody"><tr><td colspan="20" class="loading">Loading creators from Google Sheets...</td></tr></tbody>
   </table>
 </div>
 
-<div id="cardView" class="grid" style="display:none;">
+<div id="cardView" class="grid">
   <div class="loading">Loading...</div>
+</div>
+
+<div class="kbd-hint" id="kbdHint" style="display:none">
+  <kbd>←</kbd><kbd>→</kbd> Navigate &nbsp; <kbd>P</kbd> Pick &nbsp; <kbd>R</kbd> Reject
 </div>
 
 <div class="export-modal" id="exportModal" onclick="if(event.target===this)this.classList.remove('show')">
@@ -135,8 +165,11 @@ var allCreators = [];
 var filtered = [];
 var sortCol = '';
 var sortAsc = true;
-var currentView = 'table';
+var currentView = 'cards';
 var expandedIdx = -1;
+var currentPage = 0;
+var PAGE_SIZE = 100;
+var focusedCardIdx = -1;
 
 var COLUMNS = [
   { key: 'picked', label: '✅', type: 'check', w: 40 },
@@ -179,7 +212,9 @@ function setView(v) {
   document.getElementById('btnCards').classList.toggle('active', v === 'cards');
   document.getElementById('tableView').style.display = v === 'table' ? '' : 'none';
   document.getElementById('cardView').style.display = v === 'cards' ? '' : 'none';
+  document.getElementById('kbdHint').style.display = v === 'cards' ? '' : 'none';
   if (v === 'cards') renderCards();
+  else { focusedCardIdx = -1; }
 }
 
 async function loadCreators() {
@@ -214,6 +249,7 @@ function applyFilters() {
   var fPicked = document.getElementById('fPicked').value;
 
   filtered = allCreators.filter(function(c) {
+    if (c.rejected) return false;
     if (q && (c.handle||'').toLowerCase().indexOf(q) < 0 && (c.name||'').toLowerCase().indexOf(q) < 0 && (c.bio||'').toLowerCase().indexOf(q) < 0) return false;
     if (fC && c.community_paid !== fC) return false;
     if (fCat && c.category !== fCat) return false;
@@ -227,6 +263,7 @@ function applyFilters() {
 
   if (sortCol) doSort();
   expandedIdx = -1;
+  currentPage = 0;
   if (currentView === 'table') renderTable();
   else renderCards();
 }
@@ -241,6 +278,20 @@ function doSort() {
     if (va > vb) return sortAsc ? 1 : -1;
     return 0;
   });
+}
+
+function getCatClass(cat) {
+  var c = (cat||'').toLowerCase();
+  if (c.includes('developer') || c.includes('engineer')) return 'cat-dev';
+  if (c.includes('crypto') || c.includes('web3')) return 'cat-crypto';
+  if (c.includes('founder') || c.includes('entrepreneur')) return 'cat-founder';
+  if (c.includes('video')) return 'cat-video';
+  if (c.includes('cjk')) return 'cat-cjk';
+  if (c.includes('educator') || c.includes('influencer')) return 'cat-educator';
+  if (c.includes('news') || c.includes('commentary')) return 'cat-news';
+  if (c.includes('lifestyle') || c.includes('creator economy')) return 'cat-lifestyle';
+  if (c.includes('inactive') || c.includes('suspended')) return 'cat-inactive';
+  return 'cat-tech';
 }
 
 function getBadgeClass(val) {
@@ -275,7 +326,10 @@ function renderHeaders() {
 function renderRows() {
   var tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
-  filtered.forEach(function(c, idx) {
+  var start = currentPage * PAGE_SIZE;
+  var pageData = filtered.slice(start, start + PAGE_SIZE);
+  pageData.forEach(function(c, i) {
+    var idx = start + i;
     var tr = document.createElement('tr');
     tr.className = 'data-row' + (c.picked ? ' picked-row' : '');
     tr.dataset.idx = idx;
@@ -317,6 +371,7 @@ function renderRows() {
     tbody.appendChild(tr);
   });
   updateCounter();
+  renderPagination('tableView');
 }
 
 function toggleExpand(idx, tr) {
@@ -387,35 +442,52 @@ function renderTable() {
 }
 
 // ===================== CARD VIEW =====================
+var tweetObserver = null;
 function renderCards() {
   var grid = document.getElementById('cardView');
   grid.innerHTML = '';
-  // Only show first 100 in cards (performance)
-  var showing = filtered.slice(0, 100);
-  showing.forEach(function(c, i) {
+  if (tweetObserver) { tweetObserver.disconnect(); tweetObserver = null; }
+
+  // Show keyboard hint in card view
+  document.getElementById('kbdHint').style.display = currentView === 'cards' ? '' : 'none';
+
+  var start = currentPage * PAGE_SIZE;
+  var pageData = filtered.slice(start, start + PAGE_SIZE);
+  var visibleCards = [];
+  pageData.forEach(function(c, i) {
+    visibleCards.push({ c: c, globalIdx: start + i });
+  });
+
+  visibleCards.forEach(function(item, cardPos) {
+    var c = item.c;
+    var globalIdx = item.globalIdx;
     var postUrl = c.top_post_url || c.ex1_url || '';
     var tweetId = getTweetId(postUrl);
     var handle = (c.handle||'').replace('@','');
     var card = document.createElement('div');
-    card.className = 'card' + (c.picked ? ' picked' : '');
-    card.dataset.gIdx = i;
+    card.className = 'card' + (c.picked ? ' picked' : '') + (cardPos === focusedCardIdx ? ' focused' : '');
+    card.dataset.gIdx = globalIdx;
+    card.dataset.cardPos = cardPos;
 
     card.innerHTML =
+      '<div class="card-actions-top">' +
+        '<button class="pick-btn' + (c.picked ? ' active' : '') + '" onclick="pickCard(' + globalIdx + ', this)">Pick</button>' +
+        '<button class="reject-btn" onclick="rejectCard(' + globalIdx + ', this)">Reject</button>' +
+      '</div>' +
       '<div class="card-header">' +
-        '<label>' +
-          '<input type="checkbox"' + (c.picked ? ' checked' : '') + ' onchange="togglePickCard(' + i + ', this.checked, this)">' +
+        '<div class="card-info">' +
           '<a class="handle-link" href="https://x.com/' + handle + '" target="_blank">' + c.handle + '</a>' +
           '<span style="color:#888;font-weight:400">' + (c.name||'') + '</span>' +
-        '</label>' +
+        '</div>' +
         '<div class="meta">' +
-          '<span>' + (c.category||'') + '</span>' +
+          '<span class="badge ' + getCatClass(c.category) + '">' + (c.category||'') + '</span>' +
           '<span>' + (c.max_pay ? '💰'+c.max_pay : '') + '</span>' +
           '<span class="badge ' + getBadgeClass(c.community_paid) + '">' + (c.community_paid||'') + '</span>' +
-          (c.picked ? '<span class="picked-badge">✅ PICKED</span>' : '') +
+          (c.picked ? '<span class="picked-badge">PICKED</span>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="tweet-embed" id="card-tweet-' + i + '">' +
-        (tweetId ? '' : '<p class="no-post">No post URL</p>') +
+      '<div class="tweet-embed" id="card-tweet-' + globalIdx + '"' + (tweetId ? ' data-tweet-id="' + tweetId + '"' : '') + '>' +
+        (tweetId ? '<div style="color:#666;padding:20px;text-align:center">Scroll to load tweet...</div>' : '<p class="no-post">No post URL</p>') +
       '</div>' +
       '<div class="card-footer">' +
         '<div class="stats">' +
@@ -423,47 +495,129 @@ function renderCards() {
           '<span>❤️ ' + (c.ex1_likes||'-') + '</span>' +
           '<span>🔥 ' + (c.top_post_likes||'-') + '</span>' +
         '</div>' +
-        '<span class="badge ' + getBadgeClass(c.selection_status) + '">' + (c.selection_status||'') + '</span>' +
       '</div>';
 
+    card.onclick = function(e) {
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+      focusCard(cardPos);
+    };
     grid.appendChild(card);
-
-    if (tweetId && typeof twttr !== 'undefined' && twttr.widgets) {
-      twttr.widgets.createTweet(tweetId, document.getElementById('card-tweet-' + i), {
-        theme: 'dark', width: 500, conversation: 'none'
-      });
-    }
   });
 
-  if (filtered.length > 100) {
-    var note = document.createElement('div');
-    note.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;color:#888;';
-    note.textContent = 'Showing first 100 of ' + filtered.length + ' results. Use filters to narrow down.';
-    grid.appendChild(note);
+  // Lazy load tweets with IntersectionObserver
+  if (typeof twttr !== 'undefined' && twttr.widgets) {
+    tweetObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var tid = el.dataset.tweetId;
+          if (tid && !el.dataset.loaded) {
+            el.dataset.loaded = '1';
+            el.innerHTML = '';
+            twttr.widgets.createTweet(tid, el, { theme: 'dark', width: 500, conversation: 'none' });
+          }
+          tweetObserver.unobserve(el);
+        }
+      });
+    }, { rootMargin: '200px' });
+    grid.querySelectorAll('.tweet-embed[data-tweet-id]').forEach(function(el) {
+      tweetObserver.observe(el);
+    });
   }
+
   updateCounter();
+  renderPagination('cardView');
 }
 
-window.togglePickCard = async function(i, picked, cb) {
+function focusCard(pos) {
+  var cards = document.querySelectorAll('#cardView .card');
+  if (pos < 0 || pos >= cards.length) return;
+  focusedCardIdx = pos;
+  cards.forEach(function(c, i) { c.classList.toggle('focused', i === pos); });
+  cards[pos].scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function getVisibleCards() {
+  return document.querySelectorAll('#cardView .card:not(.removing)');
+}
+
+window.pickCard = async function(i, btn) {
   var c = filtered[i];
-  c.picked = picked;
-  var card = cb.closest('.card');
-  card.classList.toggle('picked', picked);
+  var newPicked = !c.picked;
+  c.picked = newPicked;
+  var card = btn.closest('.card');
+  card.classList.toggle('picked', newPicked);
+  btn.classList.toggle('active', newPicked);
   var meta = card.querySelector('.meta');
   var badge = meta.querySelector('.picked-badge');
-  if (picked && !badge) {
+  if (newPicked && !badge) {
     var s = document.createElement('span');
     s.className = 'picked-badge';
-    s.textContent = '✅ PICKED';
+    s.textContent = 'PICKED';
     meta.appendChild(s);
-  } else if (!picked && badge) { badge.remove(); }
+  } else if (!newPicked && badge) { badge.remove(); }
   updateCounter();
   showSaving('Saving...');
   try {
-    await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({handle:c.handle, picked:picked}) });
+    await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({handle:c.handle, picked:newPicked}) });
     showSaving('✅ Saved');
   } catch(e) { showSaving('❌ Failed'); }
 };
+
+window.rejectCard = async function(i, btn) {
+  var c = filtered[i];
+  c.picked = false;
+  c.rejected = true;
+  var card = btn.closest('.card');
+  card.classList.add('removing');
+  // After animation, remove the card and adjust focus
+  setTimeout(function() {
+    card.remove();
+    var remaining = getVisibleCards();
+    if (focusedCardIdx >= remaining.length) focusedCardIdx = remaining.length - 1;
+    if (focusedCardIdx >= 0 && remaining.length > 0) focusCard(focusedCardIdx);
+    updateCounter();
+  }, 300);
+  showSaving('Saving...');
+  try {
+    await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({handle:c.handle, picked:false, rejected:true}) });
+    showSaving('✅ Rejected');
+  } catch(e) { showSaving('❌ Failed'); }
+};
+
+function renderPagination(containerId) {
+  var container = document.getElementById(containerId);
+  // Remove existing pagination
+  var existing = container.parentNode.querySelector('.pagination[data-for="' + containerId + '"]');
+  if (existing) existing.remove();
+
+  var totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  if (totalPages <= 1) return;
+
+  var div = document.createElement('div');
+  div.className = 'pagination';
+  div.dataset.for = containerId;
+
+  var prevBtn = document.createElement('button');
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = currentPage === 0;
+  prevBtn.onclick = function() { currentPage--; if (currentView === 'table') renderTable(); else renderCards(); window.scrollTo(0,0); };
+
+  var info = document.createElement('span');
+  var start = currentPage * PAGE_SIZE + 1;
+  var end = Math.min((currentPage + 1) * PAGE_SIZE, filtered.length);
+  info.textContent = start + '-' + end + ' of ' + filtered.length + '  (Page ' + (currentPage+1) + '/' + totalPages + ')';
+
+  var nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = currentPage >= totalPages - 1;
+  nextBtn.onclick = function() { currentPage++; if (currentView === 'table') renderTable(); else renderCards(); window.scrollTo(0,0); };
+
+  div.appendChild(prevBtn);
+  div.appendChild(info);
+  div.appendChild(nextBtn);
+  container.parentNode.insertBefore(div, container.nextSibling);
+}
 
 // ===================== COMMON =====================
 async function togglePick(c, picked, tr) {
@@ -512,6 +666,41 @@ function downloadCSV() {
   a.download = 'pika-picked-creators.csv';
   a.click();
 }
+
+// ===================== KEYBOARD SHORTCUTS =====================
+document.addEventListener('keydown', function(e) {
+  if (currentView !== 'cards') return;
+  // Ignore if user is typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+  var cards = getVisibleCards();
+  if (!cards.length) return;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    var next = focusedCardIdx + 1;
+    if (next < cards.length) focusCard(next);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    var prev = focusedCardIdx - 1;
+    if (prev >= 0) focusCard(prev);
+    else if (focusedCardIdx < 0) focusCard(0);
+  } else if (e.key === 'p' || e.key === 'P') {
+    e.preventDefault();
+    if (focusedCardIdx >= 0 && focusedCardIdx < cards.length) {
+      var card = cards[focusedCardIdx];
+      var pickBtn = card.querySelector('.pick-btn');
+      if (pickBtn) pickBtn.click();
+    }
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    if (focusedCardIdx >= 0 && focusedCardIdx < cards.length) {
+      var card = cards[focusedCardIdx];
+      var rejectBtn = card.querySelector('.reject-btn');
+      if (rejectBtn) rejectBtn.click();
+    }
+  }
+});
 
 window.addEventListener('load', function() { setTimeout(loadCreators, 300); });
 </script>
