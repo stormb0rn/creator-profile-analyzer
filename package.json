@@ -1,0 +1,9 @@
+{
+  "name": "creator-review-v2",
+  "version": "2.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "google-auth-library": "^10.6.1",
+    "google-spreadsheet": "^5.2.0"
+  }
+}

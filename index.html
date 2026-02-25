@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pika Creator Review v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 16px; }
+.toolbar { position: sticky; top: 0; z-index: 100; background: #1a1a1a; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border: 1px solid #333; }
+.toolbar input, .toolbar select { padding: 7px 12px; border-radius: 8px; border: 1px solid #555; background: #2a2a2a; color: #fff; font-size: 13px; }
+.toolbar .search { width: 200px; }
+.toolbar button { padding: 7px 14px; border-radius: 8px; border: 1px solid #555; background: #2a2a2a; color: #fff; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+.toolbar button:hover { background: #3a3a3a; }
+.toolbar button.primary { background: #0066ff; border-color: #0066ff; }
+.toolbar button.active { background: #0066ff; border-color: #0066ff; }
+.toolbar .count { font-size: 13px; color: #888; white-space: nowrap; }
+.toolbar .saving { color: #f0c040; font-size: 12px; }
+
+/* View toggle */
+.view-toggle { display: flex; gap: 0; }
+.view-toggle button { border-radius: 0; border-right: none; }
+.view-toggle button:first-child { border-radius: 8px 0 0 8px; }
+.view-toggle button:last-child { border-radius: 0 8px 8px 0; border-right: 1px solid #555; }
+
+/* Table view */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { position: sticky; top: 56px; background: #1a1a1a; padding: 8px 10px; text-align: left; border-bottom: 2px solid #333; white-space: nowrap; cursor: pointer; user-select: none; z-index: 50; }
+th:hover { color: #1d9bf0; }
+td { padding: 7px 10px; border-bottom: 1px solid #222; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+tr.data-row { cursor: pointer; }
+tr.data-row:hover { background: #1a1a1a; }
+tr.picked-row { background: rgba(0,168,84,0.1); }
+tr.picked-row td:first-child { border-left: 3px solid #00a854; }
+td a { color: #1d9bf0; text-decoration: none; }
+td a:hover { text-decoration: underline; }
+td input[type=checkbox] { width: 18px; height: 18px; accent-color: #00a854; cursor: pointer; }
+.badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.badge-community { background: #1a3a5c; color: #5ba3e6; }
+.badge-paid { background: #3a2a1a; color: #e6a85b; }
+.badge-wait { background: #2a2a2a; color: #888; }
+.badge-skip { background: #3a1a1a; color: #e65b5b; }
+.badge-meets { background: #1a3a1a; color: #5be65b; }
+.badge-not-meets { background: #3a1a1a; color: #e65b5b; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.loading { text-align: center; padding: 60px; color: #888; font-size: 18px; }
+
+/* Expand row for tweet embed */
+tr.expand-row { background: #111; }
+tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow: visible; }
+.embed-container { display: flex; gap: 20px; align-items: flex-start; }
+.embed-left { flex: 1; min-width: 300px; }
+.embed-right { flex: 0 0 auto; }
+.embed-left .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.embed-left .info-grid dt { color: #888; }
+.embed-left .info-grid dd { color: #e0e0e0; }
+
+/* Card/Grid view */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(550px, 1fr)); gap: 16px; }
+.card { background: #1a1a1a; border-radius: 12px; border: 2px solid #333; overflow: hidden; transition: all 0.2s; }
+.card.picked { border-color: #00a854; box-shadow: 0 0 12px rgba(0,168,84,0.3); }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #222; }
+.card-header label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+.card-header input[type=checkbox] { width: 20px; height: 20px; accent-color: #00a854; cursor: pointer; }
+.handle-link { color: #1d9bf0; text-decoration: none; }
+.handle-link:hover { text-decoration: underline; }
+.meta { display: flex; gap: 8px; font-size: 12px; flex-wrap: wrap; }
+.meta span { background: #2a2a2a; padding: 2px 8px; border-radius: 4px; }
+.meta .picked-badge { background: #00a854; color: #fff; }
+.tweet-embed { padding: 8px 16px 16px; min-height: 150px; }
+.card-footer { padding: 10px 16px; border-top: 1px solid #222; font-size: 13px; display: flex; justify-content: space-between; }
+.stats { display: flex; gap: 16px; }
+.stats span { color: #aaa; }
+.no-post { color: #666; padding: 20px; text-align: center; }
+
+/* Modal */
+.export-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
+.export-modal.show { display: flex; }
+.export-content { background: #1a1a1a; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid #333; }
+.export-content textarea { width: 100%; height: 300px; background: #0a0a0a; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; margin: 12px 0; resize: vertical; }
+.export-content .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="view-toggle">
+    <button id="btnTable" class="active" onclick="setView('table')">📊 Table</button>
+    <button id="btnCards" onclick="setView('cards')">🃏 Cards</button>
+  </div>
+  <input type="text" class="search" placeholder="🔍 Search handle/name/bio..." oninput="applyFilters()">
+  <select id="fCommunity" onchange="applyFilters()"><option value="">Community/Paid</option></select>
+  <select id="fCategory" onchange="applyFilters()"><option value="">Category</option></select>
+  <select id="fSelection" onchange="applyFilters()"><option value="">Selection Status</option></select>
+  <select id="fTier" onchange="applyFilters()"><option value="">Tier</option></select>
+  <select id="fReco" onchange="applyFilters()"><option value="">Recommendation</option></select>
+  <select id="fPicked" onchange="applyFilters()">
+    <option value="">Picked</option>
+    <option value="yes">✅ Picked</option>
+    <option value="no">Not Picked</option>
+  </select>
+  <button class="primary" onclick="exportPicked()">📋 Export</button>
+  <span class="count" id="counter">Loading...</span>
+  <span class="saving" id="saveStatus"></span>
+</div>
+
+<div id="tableView" class="table-wrap">
+  <table id="mainTable">
+    <thead><tr id="headerRow"></tr></thead>
+    <tbody id="tbody"><tr><td colspan="20" class="loading">Loading creators from Google Sheets...</td></tr></tbody>
+  </table>
+</div>
+
+<div id="cardView" class="grid" style="display:none;">
+  <div class="loading">Loading...</div>
+</div>
+
+<div class="export-modal" id="exportModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="export-content">
+    <h3>📋 Export Picked Creators</h3>
+    <p id="exportCount"></p>
+    <textarea id="exportText" readonly></textarea>
+    <div class="btn-row">
+      <button class="primary" onclick="copyExport(this)">Copy to Clipboard</button>
+      <button onclick="downloadCSV()">Download CSV</button>
+      <button onclick="document.getElementById('exportModal').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API = '/api/creators';
+var allCreators = [];
+var filtered = [];
+var sortCol = '';
+var sortAsc = true;
+var currentView = 'table';
+var expandedIdx = -1;
+
+var COLUMNS = [
+  { key: 'picked', label: '✅', type: 'check', w: 40 },
+  { key: 'handle', label: 'Handle', type: 'link' },
+  { key: 'name', label: 'Name' },
+  { key: 'community_paid', label: 'Type', type: 'badge' },
+  { key: 'category', label: 'Category' },
+  { key: 'selection_status', label: 'Selection', type: 'badge2' },
+  { key: 'tier', label: 'Tier' },
+  { key: 'recommendation', label: 'Reco' },
+  { key: 'ex1_views', label: 'Views', type: 'num' },
+  { key: 'ex1_likes', label: 'Likes', type: 'num' },
+  { key: 'median_views', label: 'Med Views', type: 'num' },
+  { key: 'median_likes', label: 'Med Likes', type: 'num' },
+  { key: 'est_cpm', label: 'CPM' },
+  { key: 'max_pay', label: 'Max Pay' },
+  { key: 'top_post_likes', label: '🔥 Top', type: 'num' },
+  { key: 'bio', label: 'Bio' },
+];
+
+function getTweetId(url) {
+  if (!url) return null;
+  var m = url.match(/status\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+function parseNum(s) {
+  if (!s) return 0;
+  return parseFloat(String(s).replace(/[$,]/g, '')) || 0;
+}
+
+function showSaving(msg) {
+  document.getElementById('saveStatus').textContent = msg;
+  if (msg) setTimeout(function() { document.getElementById('saveStatus').textContent = ''; }, 2000);
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('btnTable').classList.toggle('active', v === 'table');
+  document.getElementById('btnCards').classList.toggle('active', v === 'cards');
+  document.getElementById('tableView').style.display = v === 'table' ? '' : 'none';
+  document.getElementById('cardView').style.display = v === 'cards' ? '' : 'none';
+  if (v === 'cards') renderCards();
+}
+
+async function loadCreators() {
+  var resp = await fetch(API);
+  allCreators = await resp.json();
+  populateFilterOptions();
+  applyFilters();
+}
+
+function populateFilterOptions() {
+  var fields = { fCommunity: 'community_paid', fCategory: 'category', fSelection: 'selection_status', fTier: 'tier', fReco: 'recommendation' };
+  for (var selId in fields) {
+    var sel = document.getElementById(selId);
+    var vals = {};
+    allCreators.forEach(function(c) { var v = c[fields[selId]]; if (v) vals[v] = (vals[v]||0) + 1; });
+    Object.entries(vals).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(e) {
+      var opt = document.createElement('option');
+      opt.value = e[0];
+      opt.textContent = e[0] + ' (' + e[1] + ')';
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function applyFilters() {
+  var q = document.querySelector('.search').value.toLowerCase();
+  var fC = document.getElementById('fCommunity').value;
+  var fCat = document.getElementById('fCategory').value;
+  var fSel = document.getElementById('fSelection').value;
+  var fTier = document.getElementById('fTier').value;
+  var fReco = document.getElementById('fReco').value;
+  var fPicked = document.getElementById('fPicked').value;
+
+  filtered = allCreators.filter(function(c) {
+    if (q && (c.handle||'').toLowerCase().indexOf(q) < 0 && (c.name||'').toLowerCase().indexOf(q) < 0 && (c.bio||'').toLowerCase().indexOf(q) < 0) return false;
+    if (fC && c.community_paid !== fC) return false;
+    if (fCat && c.category !== fCat) return false;
+    if (fSel && c.selection_status !== fSel) return false;
+    if (fTier && c.tier !== fTier) return false;
+    if (fReco && c.recommendation !== fReco) return false;
+    if (fPicked === 'yes' && !c.picked) return false;
+    if (fPicked === 'no' && c.picked) return false;
+    return true;
+  });
+
+  if (sortCol) doSort();
+  expandedIdx = -1;
+  if (currentView === 'table') renderTable();
+  else renderCards();
+}
+
+function doSort() {
+  filtered.sort(function(a, b) {
+    var va = a[sortCol], vb = b[sortCol];
+    if (['ex1_views','ex1_likes','median_views','median_likes','top_post_likes'].indexOf(sortCol) >= 0) {
+      va = parseNum(va); vb = parseNum(vb);
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+function getBadgeClass(val) {
+  var v = (val||'').toLowerCase();
+  if (v === 'community') return 'badge-community';
+  if (v === 'paid') return 'badge-paid';
+  if (v === 'wait') return 'badge-wait';
+  if (v === 'skip') return 'badge-skip';
+  if (v.indexOf('meets') >= 0 && v.indexOf('not') < 0) return 'badge-meets';
+  if (v.indexOf('not') >= 0) return 'badge-not-meets';
+  return 'badge-wait';
+}
+
+// ===================== TABLE VIEW =====================
+function renderHeaders() {
+  var hr = document.getElementById('headerRow');
+  hr.innerHTML = '';
+  COLUMNS.forEach(function(col) {
+    var th = document.createElement('th');
+    th.textContent = col.label + (sortCol === col.key ? (sortAsc ? ' ↑' : ' ↓') : '');
+    if (col.w) th.style.width = col.w + 'px';
+    th.onclick = function() {
+      if (sortCol === col.key) { sortAsc = !sortAsc; } else { sortCol = col.key; sortAsc = true; }
+      doSort();
+      renderHeaders();
+      renderRows();
+    };
+    hr.appendChild(th);
+  });
+}
+
+function renderRows() {
+  var tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  filtered.forEach(function(c, idx) {
+    var tr = document.createElement('tr');
+    tr.className = 'data-row' + (c.picked ? ' picked-row' : '');
+    tr.dataset.idx = idx;
+
+    COLUMNS.forEach(function(col) {
+      var td = document.createElement('td');
+      if (col.type === 'check') {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = c.picked;
+        cb.onclick = function(e) { e.stopPropagation(); };
+        cb.onchange = function() { togglePick(c, this.checked, tr); };
+        td.appendChild(cb);
+      } else if (col.type === 'link') {
+        var handle = (c.handle||'').replace('@','');
+        var a = document.createElement('a');
+        a.href = 'https://x.com/' + handle;
+        a.target = '_blank';
+        a.textContent = c.handle;
+        a.onclick = function(e) { e.stopPropagation(); };
+        td.appendChild(a);
+      } else if (col.type === 'badge' || col.type === 'badge2') {
+        var span = document.createElement('span');
+        span.className = 'badge ' + getBadgeClass(c[col.key]);
+        span.textContent = c[col.key];
+        td.appendChild(span);
+      } else if (col.type === 'num') {
+        td.className = 'num';
+        td.textContent = c[col.key] || '';
+      } else {
+        td.textContent = c[col.key] || '';
+        td.title = c[col.key] || '';
+      }
+      tr.appendChild(td);
+    });
+
+    // Click row to expand tweet embed
+    tr.onclick = function() { toggleExpand(idx, tr); };
+    tbody.appendChild(tr);
+  });
+  updateCounter();
+}
+
+function toggleExpand(idx, tr) {
+  // Remove existing expand row
+  var existing = document.querySelector('.expand-row');
+  if (existing) existing.remove();
+
+  if (expandedIdx === idx) { expandedIdx = -1; return; }
+  expandedIdx = idx;
+  var c = filtered[idx];
+
+  var expandTr = document.createElement('tr');
+  expandTr.className = 'expand-row';
+  var td = document.createElement('td');
+  td.colSpan = COLUMNS.length;
+
+  // Determine which post to embed (prefer top_post, fallback to ex1)
+  var postUrl = c.top_post_url || c.ex1_url || '';
+  var tweetId = getTweetId(postUrl);
+  var handle = (c.handle||'').replace('@','');
+
+  td.innerHTML =
+    '<div class="embed-container">' +
+      '<div class="embed-left">' +
+        '<dl class="info-grid">' +
+          '<dt>Handle</dt><dd><a href="https://x.com/' + handle + '" target="_blank">@' + handle + '</a></dd>' +
+          '<dt>Name</dt><dd>' + (c.name||'-') + '</dd>' +
+          '<dt>Category</dt><dd>' + (c.category||'-') + '</dd>' +
+          '<dt>Type</dt><dd>' + (c.community_paid||'-') + '</dd>' +
+          '<dt>Selection</dt><dd>' + (c.selection_status||'-') + '</dd>' +
+          '<dt>Tier</dt><dd>' + (c.tier||'-') + '</dd>' +
+          '<dt>Recommendation</dt><dd>' + (c.recommendation||'-') + '</dd>' +
+          '<dt>Reco Reason</dt><dd style="white-space:normal">' + (c.recommendation_reason||'-') + '</dd>' +
+          '<dt>Bio</dt><dd style="white-space:normal">' + (c.bio||'-') + '</dd>' +
+          '<dt>Risk</dt><dd>' + (c.risk_flag||'-') + '</dd>' +
+          '<dt>Risk Assessment</dt><dd style="white-space:normal">' + (c.risk_assessment||'-') + '</dd>' +
+          '<dt>Notes</dt><dd style="white-space:normal">' + (c.notes||'-') + '</dd>' +
+          '<dt>Ex1 Views</dt><dd>' + (c.ex1_views||'-') + '</dd>' +
+          '<dt>Ex1 Likes</dt><dd>' + (c.ex1_likes||'-') + '</dd>' +
+          '<dt>Median Views</dt><dd>' + (c.median_views||'-') + '</dd>' +
+          '<dt>Median Likes</dt><dd>' + (c.median_likes||'-') + '</dd>' +
+          '<dt>CPM</dt><dd>' + (c.est_cpm||'-') + '</dd>' +
+          '<dt>Max Pay</dt><dd>' + (c.max_pay||'-') + '</dd>' +
+          '<dt>🔥 Top Post Likes</dt><dd>' + (c.top_post_likes||'-') + '</dd>' +
+        '</dl>' +
+      '</div>' +
+      '<div class="embed-right" id="embed-' + idx + '">' +
+        (tweetId ? '<div style="color:#888">Loading tweet...</div>' : '<div class="no-post">No post URL available</div>') +
+      '</div>' +
+    '</div>';
+
+  expandTr.appendChild(td);
+  tr.after(expandTr);
+
+  // Load tweet embed
+  if (tweetId && typeof twttr !== 'undefined' && twttr.widgets) {
+    var container = document.getElementById('embed-' + idx);
+    container.innerHTML = '';
+    twttr.widgets.createTweet(tweetId, container, {
+      theme: 'dark', width: 500, conversation: 'none'
+    });
+  }
+}
+
+function renderTable() {
+  renderHeaders();
+  renderRows();
+}
+
+// ===================== CARD VIEW =====================
+function renderCards() {
+  var grid = document.getElementById('cardView');
+  grid.innerHTML = '';
+  // Only show first 100 in cards (performance)
+  var showing = filtered.slice(0, 100);
+  showing.forEach(function(c, i) {
+    var postUrl = c.top_post_url || c.ex1_url || '';
+    var tweetId = getTweetId(postUrl);
+    var handle = (c.handle||'').replace('@','');
+    var card = document.createElement('div');
+    card.className = 'card' + (c.picked ? ' picked' : '');
+    card.dataset.gIdx = i;
+
+    card.innerHTML =
+      '<div class="card-header">' +
+        '<label>' +
+          '<input type="checkbox"' + (c.picked ? ' checked' : '') + ' onchange="togglePickCard(' + i + ', this.checked, this)">' +
+          '<a class="handle-link" href="https://x.com/' + handle + '" target="_blank">' + c.handle + '</a>' +
+          '<span style="color:#888;font-weight:400">' + (c.name||'') + '</span>' +
+        '</label>' +
+        '<div class="meta">' +
+          '<span>' + (c.category||'') + '</span>' +
+          '<span>' + (c.max_pay ? '💰'+c.max_pay : '') + '</span>' +
+          '<span class="badge ' + getBadgeClass(c.community_paid) + '">' + (c.community_paid||'') + '</span>' +
+          (c.picked ? '<span class="picked-badge">✅ PICKED</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="tweet-embed" id="card-tweet-' + i + '">' +
+        (tweetId ? '' : '<p class="no-post">No post URL</p>') +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<div class="stats">' +
+          '<span>👁 ' + (c.ex1_views||'-') + '</span>' +
+          '<span>❤️ ' + (c.ex1_likes||'-') + '</span>' +
+          '<span>🔥 ' + (c.top_post_likes||'-') + '</span>' +
+        '</div>' +
+        '<span class="badge ' + getBadgeClass(c.selection_status) + '">' + (c.selection_status||'') + '</span>' +
+      '</div>';
+
+    grid.appendChild(card);
+
+    if (tweetId && typeof twttr !== 'undefined' && twttr.widgets) {
+      twttr.widgets.createTweet(tweetId, document.getElementById('card-tweet-' + i), {
+        theme: 'dark', width: 500, conversation: 'none'
+      });
+    }
+  });
+
+  if (filtered.length > 100) {
+    var note = document.createElement('div');
+    note.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;color:#888;';
+    note.textContent = 'Showing first 100 of ' + filtered.length + ' results. Use filters to narrow down.';
+    grid.appendChild(note);
+  }
+  updateCounter();
+}
+
+window.togglePickCard = async function(i, picked, cb) {
+  var c = filtered[i];
+  c.picked = picked;
+  var card = cb.closest('.card');
+  card.classList.toggle('picked', picked);
+  var meta = card.querySelector('.meta');
+  var badge = meta.querySelector('.picked-badge');
+  if (picked && !badge) {
+    var s = document.createElement('span');
+    s.className = 'picked-badge';
+    s.textContent = '✅ PICKED';
+    meta.appendChild(s);
+  } else if (!picked && badge) { badge.remove(); }
+  updateCounter();
+  showSaving('Saving...');
+  try {
+    await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({handle:c.handle, picked:picked}) });
+    showSaving('✅ Saved');
+  } catch(e) { showSaving('❌ Failed'); }
+};
+
+// ===================== COMMON =====================
+async function togglePick(c, picked, tr) {
+  c.picked = picked;
+  tr.classList.toggle('picked-row', picked);
+  updateCounter();
+  showSaving('Saving...');
+  try {
+    await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({handle:c.handle, picked:picked}) });
+    showSaving('✅ Saved');
+  } catch(e) { showSaving('❌ Failed'); }
+}
+
+function updateCounter() {
+  var picked = allCreators.filter(function(c) { return c.picked; }).length;
+  document.getElementById('counter').textContent = picked + ' picked / ' + filtered.length + ' shown / ' + allCreators.length + ' total';
+}
+
+function exportPicked() {
+  var picked = allCreators.filter(function(c) { return c.picked; });
+  var lines = ['Handle\tName\tCategory\tProfile\tTop Post\tTop Likes\tEx1 Post\tViews\tLikes'];
+  picked.forEach(function(c) {
+    var handle = (c.handle||'').replace('@','');
+    lines.push([c.handle, c.name, c.category, 'https://x.com/'+handle, c.top_post_url, c.top_post_likes, c.ex1_url, c.ex1_views, c.ex1_likes].join('\t'));
+  });
+  document.getElementById('exportCount').textContent = picked.length + ' creators picked';
+  document.getElementById('exportText').value = lines.join('\n');
+  document.getElementById('exportModal').classList.add('show');
+}
+
+function copyExport(btn) {
+  navigator.clipboard.writeText(document.getElementById('exportText').value);
+  btn.textContent = '✅ Copied!';
+  setTimeout(function() { btn.textContent = 'Copy to Clipboard'; }, 2000);
+}
+
+function downloadCSV() {
+  var picked = allCreators.filter(function(c) { return c.picked; });
+  var csv = 'Handle,Name,Category,Profile URL,Top Post,Top Likes,Ex1 Post,Views,Likes\n';
+  picked.forEach(function(c) {
+    var handle = (c.handle||'').replace('@','');
+    csv += [c.handle,'"'+c.name+'"','"'+c.category+'"','https://x.com/'+handle,c.top_post_url,c.top_post_likes,c.ex1_url,c.ex1_views,c.ex1_likes].join(',')+'\n';
+  });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'pika-picked-creators.csv';
+  a.click();
+}
+
+window.addEventListener('load', function() { setTimeout(loadCreators, 300); });
+</script>
+<script async src="https://platform.twitter.com/widgets.js"></script>
+</body>
+</html>
