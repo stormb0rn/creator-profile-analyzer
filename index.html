@@ -106,6 +106,28 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
 .export-content { background: #1a1a1a; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid #333; }
 .export-content textarea { width: 100%; height: 300px; background: #0a0a0a; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; margin: 12px 0; resize: vertical; }
 .export-content .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+
+/* Batch browse modal */
+.batch-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 300; justify-content: center; align-items: flex-start; padding: 40px 20px; overflow-y: auto; }
+.batch-modal.show { display: flex; }
+.batch-content { background: #1a1a1a; border-radius: 12px; padding: 24px; max-width: 900px; width: 100%; border: 1px solid #333; }
+.batch-content h3 { margin-bottom: 12px; }
+.batch-input-area { display: flex; gap: 8px; margin-bottom: 16px; }
+.batch-input-area textarea { flex: 1; height: 80px; background: #0a0a0a; color: #e0e0e0; border: 1px solid #333; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; resize: vertical; }
+.batch-tweets { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 16px; max-height: 70vh; overflow-y: auto; padding: 4px; }
+.batch-tweet-card { background: #111; border-radius: 10px; border: 1px solid #333; overflow: hidden; min-height: 150px; }
+.batch-count { color: #888; font-size: 13px; margin-bottom: 12px; }
+
+/* Community tab */
+.community-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 16px; padding: 4px; }
+.community-card { background: #1a1a1a; border-radius: 12px; border: 1px solid #333; overflow: hidden; }
+.community-card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #222; }
+.community-card-header .info { display: flex; align-items: center; gap: 8px; }
+.community-card-header .info a { color: #1d9bf0; text-decoration: none; font-weight: 600; }
+.community-card-header .info a:hover { text-decoration: underline; }
+.community-card-header .stats { display: flex; gap: 10px; font-size: 12px; color: #888; }
+.community-card-header .stats span { background: #2a2a2a; padding: 2px 8px; border-radius: 4px; }
+.community-card .tweet-embed { padding: 8px 16px 16px; min-height: 150px; }
 </style>
 </head>
 <body>
@@ -114,18 +136,21 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
   <div class="view-toggle">
     <button id="btnTable" onclick="setView('table')">📊 Table</button>
     <button id="btnCards" class="active" onclick="setView('cards')">🃏 Cards</button>
+    <button id="btnCommunity" onclick="setView('community')">🌟 Community</button>
+    <button id="btnInfluencer" onclick="setView('influencer')">🎯 Influencer</button>
   </div>
   <input type="text" class="search" placeholder="🔍 Search handle/name/bio..." oninput="applyFilters()">
   <select id="fCommunity" onchange="applyFilters()"><option value="">Community/Paid</option></select>
   <select id="fCategory" onchange="applyFilters()"><option value="">Category</option></select>
   <select id="fSelection" onchange="applyFilters()"><option value="">Selection Status</option></select>
-  <select id="fTier" onchange="applyFilters()"><option value="">Tier</option></select>
+  <select id="fTier" onchange="applyFilters()"><option value="">Tier (CPM)</option></select>
   <select id="fReco" onchange="applyFilters()"><option value="">Recommendation</option></select>
   <select id="fPicked" onchange="applyFilters()">
     <option value="">Picked</option>
     <option value="yes">✅ Picked</option>
     <option value="no">Not Picked</option>
   </select>
+  <button onclick="openBatchBrowse()">📌 Batch Browse</button>
   <button class="primary" onclick="exportPicked()">📋 Export</button>
   <span class="count" id="counter">Loading...</span>
   <span class="saving" id="saveStatus"></span>
@@ -142,6 +167,14 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
   <div class="loading">Loading...</div>
 </div>
 
+<div id="communityView" class="community-grid" style="display:none">
+  <div class="loading">Loading community creators...</div>
+</div>
+
+<div id="influencerView" class="community-grid" style="display:none">
+  <div class="loading">Loading influencers...</div>
+</div>
+
 <div class="kbd-hint" id="kbdHint" style="display:none">
   <kbd>←</kbd><kbd>→</kbd> Navigate &nbsp; <kbd>P</kbd> Pick &nbsp; <kbd>R</kbd> Reject
 </div>
@@ -156,6 +189,22 @@ tr.expand-row td { padding: 16px; max-width: none; white-space: normal; overflow
       <button onclick="downloadCSV()">Download CSV</button>
       <button onclick="document.getElementById('exportModal').classList.remove('show')">Close</button>
     </div>
+  </div>
+</div>
+
+<div class="batch-modal" id="batchModal" onclick="if(event.target===this)closeBatchBrowse()">
+  <div class="batch-content">
+    <h3>📌 Batch Browse Tweets</h3>
+    <div class="batch-input-area">
+      <textarea id="batchInput" placeholder="Paste tweet URLs here, one per line...&#10;https://x.com/user/status/123&#10;https://twitter.com/user/status/456"></textarea>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="primary" onclick="renderBatchTweets()">Load</button>
+        <button onclick="clearBatchTweets()">Clear</button>
+        <button onclick="closeBatchBrowse()">Close</button>
+      </div>
+    </div>
+    <div class="batch-count" id="batchCount"></div>
+    <div class="batch-tweets" id="batchTweets"></div>
   </div>
 </div>
 
@@ -210,10 +259,28 @@ function setView(v) {
   currentView = v;
   document.getElementById('btnTable').classList.toggle('active', v === 'table');
   document.getElementById('btnCards').classList.toggle('active', v === 'cards');
+  document.getElementById('btnCommunity').classList.toggle('active', v === 'community');
+  document.getElementById('btnInfluencer').classList.toggle('active', v === 'influencer');
   document.getElementById('tableView').style.display = v === 'table' ? '' : 'none';
   document.getElementById('cardView').style.display = v === 'cards' ? '' : 'none';
+  document.getElementById('communityView').style.display = v === 'community' ? '' : 'none';
+  document.getElementById('influencerView').style.display = v === 'influencer' ? '' : 'none';
   document.getElementById('kbdHint').style.display = v === 'cards' ? '' : 'none';
+  // Hide main-data filters, counter, and pagination when in community/influencer view
+  var hideMain = v === 'community' || v === 'influencer';
+  document.querySelectorAll('.toolbar select, .toolbar .search, .toolbar .count, .toolbar .primary, .toolbar .saving').forEach(function(el) {
+    el.style.display = hideMain ? 'none' : '';
+  });
+  var batchBtn = document.querySelector('.toolbar button[onclick="openBatchBrowse()"]');
+  if (batchBtn) batchBtn.style.display = hideMain ? 'none' : '';
+  document.querySelectorAll('.pagination').forEach(function(el) {
+    el.style.display = hideMain ? 'none' : '';
+  });
+  // Update URL hash for shareable link
+  window.history.replaceState(null, '', v === 'cards' ? location.pathname : location.pathname + '#' + v);
   if (v === 'cards') renderCards();
+  else if (v === 'community') loadCommunity();
+  else if (v === 'influencer') loadInfluencer();
   else { focusedCardIdx = -1; }
 }
 
@@ -224,42 +291,125 @@ async function loadCreators() {
   applyFilters();
 }
 
+var FILTER_FIELDS = { fCommunity: 'community_paid', fCategory: 'category', fSelection: 'selection_status', fTier: 'tier', fReco: 'recommendation' };
+
+// Tier ordering: lower index = cheaper CPM (better)
+var TIER_ORDER = ['💰 <$1', '💰 $1-5', '🔶 $5-20', '⚠️ $20-100', '⚠️ >$20', '❌ >$100'];
+function getTierLevel(tier) {
+  var idx = TIER_ORDER.indexOf(tier);
+  return idx >= 0 ? idx : 999;
+}
+function tierMatches(creatorTier, selectedTier) {
+  if (!selectedTier) return true;
+  return getTierLevel(creatorTier) <= getTierLevel(selectedTier);
+}
+
 function populateFilterOptions() {
-  var fields = { fCommunity: 'community_paid', fCategory: 'category', fSelection: 'selection_status', fTier: 'tier', fReco: 'recommendation' };
-  for (var selId in fields) {
+  for (var selId in FILTER_FIELDS) {
     var sel = document.getElementById(selId);
+    var field = FILTER_FIELDS[selId];
     var vals = {};
-    allCreators.forEach(function(c) { var v = c[fields[selId]]; if (v) vals[v] = (vals[v]||0) + 1; });
-    Object.entries(vals).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(e) {
-      var opt = document.createElement('option');
-      opt.value = e[0];
-      opt.textContent = e[0] + ' (' + e[1] + ')';
-      sel.appendChild(opt);
+    allCreators.forEach(function(c) { if (c.rejected) return; var v = c[field]; if (v) vals[v] = (vals[v]||0) + 1; });
+
+    if (selId === 'fTier') {
+      // Sort by tier order, add "≤" prefix
+      TIER_ORDER.forEach(function(t) {
+        if (!vals[t]) return;
+        var opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = '≤ ' + t + ' (' + vals[t] + ')';
+        sel.appendChild(opt);
+      });
+      // Add TBD and any others not in TIER_ORDER
+      Object.entries(vals).forEach(function(e) {
+        if (TIER_ORDER.indexOf(e[0]) < 0) {
+          var opt = document.createElement('option');
+          opt.value = e[0];
+          opt.textContent = e[0] + ' (' + e[1] + ')';
+          sel.appendChild(opt);
+        }
+      });
+    } else {
+      Object.entries(vals).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(e) {
+        var opt = document.createElement('option');
+        opt.value = e[0];
+        opt.textContent = e[0] + ' (' + e[1] + ')';
+        sel.appendChild(opt);
+      });
+    }
+  }
+}
+
+function getFilterValues() {
+  return {
+    q: document.querySelector('.search').value.toLowerCase(),
+    fC: document.getElementById('fCommunity').value,
+    fCat: document.getElementById('fCategory').value,
+    fSel: document.getElementById('fSelection').value,
+    fTier: document.getElementById('fTier').value,
+    fReco: document.getElementById('fReco').value,
+    fPicked: document.getElementById('fPicked').value
+  };
+}
+
+function matchesFilters(c, fv, skipField) {
+  if (c.rejected) return false;
+  // When searching, ignore all other filters
+  if (fv.q) {
+    return (c.handle||'').toLowerCase().indexOf(fv.q) >= 0 || (c.name||'').toLowerCase().indexOf(fv.q) >= 0 || (c.bio||'').toLowerCase().indexOf(fv.q) >= 0;
+  }
+  if (skipField !== 'community_paid' && fv.fC && c.community_paid !== fv.fC) return false;
+  if (skipField !== 'category' && fv.fCat && c.category !== fv.fCat) return false;
+  if (skipField !== 'selection_status' && fv.fSel && c.selection_status !== fv.fSel) return false;
+  if (skipField !== 'tier' && fv.fTier && !tierMatches(c.tier, fv.fTier)) return false;
+  if (skipField !== 'recommendation' && fv.fReco && c.recommendation !== fv.fReco) return false;
+  if (fv.fPicked === 'yes' && !c.picked) return false;
+  if (fv.fPicked === 'no' && c.picked) return false;
+  return true;
+}
+
+function updateFilterCounts(fv) {
+  for (var selId in FILTER_FIELDS) {
+    var field = FILTER_FIELDS[selId];
+    var sel = document.getElementById(selId);
+    // Count how many match for each option value (excluding this filter itself)
+    var vals = {};
+    allCreators.forEach(function(c) {
+      if (!matchesFilters(c, fv, field)) return;
+      var v = c[field];
+      if (v) vals[v] = (vals[v]||0) + 1;
     });
+    // Update option labels
+    if (selId === 'fTier') {
+      // For tier, show cumulative count (≤ this tier)
+      for (var i = 1; i < sel.options.length; i++) {
+        var optVal = sel.options[i].value;
+        if (TIER_ORDER.indexOf(optVal) >= 0) {
+          var cumCount = 0;
+          TIER_ORDER.forEach(function(t) { if (getTierLevel(t) <= getTierLevel(optVal)) cumCount += (vals[t] || 0); });
+          sel.options[i].textContent = '\u2264 ' + optVal + ' (' + cumCount + ')';
+        } else {
+          sel.options[i].textContent = optVal + ' (' + (vals[optVal] || 0) + ')';
+        }
+      }
+    } else {
+      for (var i = 1; i < sel.options.length; i++) {
+        var optVal = sel.options[i].value;
+        var count = vals[optVal] || 0;
+        sel.options[i].textContent = optVal + ' (' + count + ')';
+      }
+    }
   }
 }
 
 function applyFilters() {
-  var q = document.querySelector('.search').value.toLowerCase();
-  var fC = document.getElementById('fCommunity').value;
-  var fCat = document.getElementById('fCategory').value;
-  var fSel = document.getElementById('fSelection').value;
-  var fTier = document.getElementById('fTier').value;
-  var fReco = document.getElementById('fReco').value;
-  var fPicked = document.getElementById('fPicked').value;
+  var fv = getFilterValues();
 
   filtered = allCreators.filter(function(c) {
-    if (c.rejected) return false;
-    if (q && (c.handle||'').toLowerCase().indexOf(q) < 0 && (c.name||'').toLowerCase().indexOf(q) < 0 && (c.bio||'').toLowerCase().indexOf(q) < 0) return false;
-    if (fC && c.community_paid !== fC) return false;
-    if (fCat && c.category !== fCat) return false;
-    if (fSel && c.selection_status !== fSel) return false;
-    if (fTier && c.tier !== fTier) return false;
-    if (fReco && c.recommendation !== fReco) return false;
-    if (fPicked === 'yes' && !c.picked) return false;
-    if (fPicked === 'no' && c.picked) return false;
-    return true;
+    return matchesFilters(c, fv, null);
   });
+
+  updateFilterCounts(fv);
 
   if (sortCol) doSort();
   expandedIdx = -1;
@@ -702,7 +852,178 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-window.addEventListener('load', function() { setTimeout(loadCreators, 300); });
+window.addEventListener('load', function() {
+  var hash = location.hash.replace('#', '');
+  if (hash === 'community') {
+    setView('community');
+  } else if (hash === 'influencer') {
+    setView('influencer');
+  } else {
+    if (hash === 'table') setView('table');
+    setTimeout(loadCreators, 300);
+  }
+});
+
+// Community tab
+var communityLoaded = false;
+async function loadCommunity() {
+  if (communityLoaded) return;
+  var container = document.getElementById('communityView');
+  container.innerHTML = '<div class="loading">Loading community creators...</div>';
+  try {
+    var resp = await fetch('/api/community');
+    var creators = await resp.json();
+    container.innerHTML = '';
+    creators.forEach(function(c, idx) {
+      var tweetId = extractTweetId(c.highlight_post || '');
+      var handle = (c.profile || '').replace('https://x.com/', '').replace('https://twitter.com/', '');
+      var card = document.createElement('div');
+      card.className = 'community-card';
+      card.innerHTML = '<div class="community-card-header"><div class="info"><span style="color:#555;font-size:12px;min-width:20px">' + (idx+1) + '</span><a href="' + c.profile + '" target="_blank">@' + handle + '</a><span style="color:#aaa">' + (c.name || '') + '</span></div><div class="stats">' +
+        (c.followers ? '<span>👥 Followers: ' + c.followers + '</span>' : '') +
+        (c.highlight_likes ? '<span>❤️ Top Likes: ' + c.highlight_likes + '</span>' : '') +
+        (c.avg_likes ? '<span>📊 Avg Likes: ' + c.avg_likes + '</span>' : '') +
+        (c.median_likes ? '<span>📈 Median: ' + c.median_likes + '</span>' : '') +
+        (c.posts_count ? '<span>📝 Posts: ' + c.posts_count + '</span>' : '') +
+        '</div></div>' +
+        (tweetId ? '<div class="tweet-embed" id="comm-' + tweetId + '"></div>' : '<div class="no-post">No highlight post</div>');
+      container.appendChild(card);
+    });
+    // Lazy load tweet embeds
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var tid = el.id.replace('comm-', '');
+          observer.unobserve(el);
+          if (window.twttr && twttr.widgets) {
+            twttr.widgets.createTweet(tid, el, { theme: 'dark', width: 480 });
+          }
+        }
+      });
+    }, { rootMargin: '200px' });
+    container.querySelectorAll('.tweet-embed[id^="comm-"]').forEach(function(el) { observer.observe(el); });
+    communityLoaded = true;
+  } catch(e) {
+    container.innerHTML = '<div class="loading">Error: ' + e.message + '</div>';
+  }
+}
+
+// Influencer tab
+var influencerLoaded = false;
+async function loadInfluencer() {
+  if (influencerLoaded) return;
+  var container = document.getElementById('influencerView');
+  container.innerHTML = '<div class="loading">Loading influencers...</div>';
+  try {
+    var resp = await fetch('/api/influencer');
+    var influencers = await resp.json();
+    container.innerHTML = '';
+    influencers.forEach(function(c, idx) {
+      var tweetId = extractTweetId(c.highlight_post || '');
+      var handle = (c.profile || '').replace('https://x.com/', '').replace('https://twitter.com/', '');
+      var card = document.createElement('div');
+      card.className = 'community-card';
+      card.innerHTML = '<div class="community-card-header"><div class="info"><span style="color:#555;font-size:12px;min-width:20px">' + (idx+1) + '</span><a href="' + c.profile + '" target="_blank">@' + handle + '</a><span style="color:#aaa">' + (c.name || '') + '</span>' +
+        (c.demi_approve ? '<span class="badge badge-meets" style="margin-left:6px">' + c.demi_approve + '</span>' : '') +
+        '</div><div class="stats">' +
+        (c.followers ? '<span>👥 ' + c.followers + '</span>' : '') +
+        (c.highlight_likes ? '<span>❤️ HL: ' + c.highlight_likes + '</span>' : '') +
+        (c.avg_likes ? '<span>📊 Avg: ' + c.avg_likes + '</span>' : '') +
+        (c.median_likes ? '<span>📈 Med: ' + c.median_likes + '</span>' : '') +
+        '</div></div>' +
+        (tweetId ? '<div class="tweet-embed" id="inf-' + tweetId + '"></div>' : '<div class="no-post">No highlight post</div>') +
+        (c.notes ? '<div style="padding:8px 16px;font-size:12px;color:#888;border-top:1px solid #222">📝 ' + c.notes + '</div>' : '');
+      container.appendChild(card);
+    });
+    // Lazy load tweet embeds
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          var tid = el.id.replace('inf-', '');
+          observer.unobserve(el);
+          if (window.twttr && twttr.widgets) {
+            twttr.widgets.createTweet(tid, el, { theme: 'dark', width: 480 });
+          }
+        }
+      });
+    }, { rootMargin: '200px' });
+    container.querySelectorAll('.tweet-embed[id^="inf-"]').forEach(function(el) { observer.observe(el); });
+    influencerLoaded = true;
+  } catch(e) {
+    container.innerHTML = '<div class="loading">Error: ' + e.message + '</div>';
+  }
+}
+
+// Batch Browse functions
+function openBatchBrowse() {
+  document.getElementById('batchModal').classList.add('show');
+  document.getElementById('batchInput').focus();
+}
+function closeBatchBrowse() {
+  document.getElementById('batchModal').classList.remove('show');
+}
+function clearBatchTweets() {
+  document.getElementById('batchInput').value = '';
+  document.getElementById('batchTweets').innerHTML = '';
+  document.getElementById('batchCount').textContent = '';
+}
+function extractTweetId(url) {
+  var m = url.match(/status\/(\d+)/);
+  return m ? m[1] : null;
+}
+function renderBatchTweets() {
+  var input = document.getElementById('batchInput').value.trim();
+  if (!input) return;
+  var lines = input.split(/[\n,]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+  var tweetUrls = [];
+  lines.forEach(function(line) {
+    var id = extractTweetId(line);
+    if (id) tweetUrls.push({ url: line, id: id });
+  });
+  if (tweetUrls.length === 0) {
+    document.getElementById('batchCount').textContent = 'No valid tweet URLs found.';
+    return;
+  }
+  document.getElementById('batchCount').textContent = tweetUrls.length + ' tweets loading...';
+  var container = document.getElementById('batchTweets');
+  container.innerHTML = '';
+  tweetUrls.forEach(function(t) {
+    var card = document.createElement('div');
+    card.className = 'batch-tweet-card';
+    card.id = 'batch-' + t.id;
+    container.appendChild(card);
+  });
+  // Lazy load with IntersectionObserver
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        var el = entry.target;
+        var tid = el.id.replace('batch-', '');
+        observer.unobserve(el);
+        if (window.twttr && twttr.widgets) {
+          twttr.widgets.createTweet(tid, el, { theme: 'dark', width: 400 }).then(function() {
+            // loaded
+          });
+        }
+      }
+    });
+  }, { rootMargin: '200px' });
+  tweetUrls.forEach(function(t) {
+    var el = document.getElementById('batch-' + t.id);
+    if (el) observer.observe(el);
+  });
+  var loaded = 0;
+  var total = tweetUrls.length;
+  var checkDone = setInterval(function() {
+    var iframes = container.querySelectorAll('iframe');
+    if (iframes.length >= total || loaded++ > 60) {
+      document.getElementById('batchCount').textContent = total + ' tweets loaded.';
+      clearInterval(checkDone);
+    }
+  }, 1000);
+}
 </script>
 <script async src="https://platform.twitter.com/widgets.js"></script>
 </body>

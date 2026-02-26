@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creator Profile</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #0a0a0a; color: #e0e0e0; padding: 0; min-width: 320px;
+}
+
+/* Top bar */
+.top-bar {
+  position: sticky; top: 0; z-index: 10; background: #0a0a0a;
+  padding: 12px 16px 0; border-bottom: 1px solid #1a1a1a;
+}
+.search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-row input {
+  flex: 1; padding: 8px 14px; border-radius: 20px; border: 1px solid #333;
+  background: #141414; color: #fff; font-size: 14px; outline: none;
+}
+.search-row input:focus { border-color: #1d9bf0; }
+.search-row input::placeholder { color: #555; }
+.search-row button {
+  padding: 8px 18px; border-radius: 20px; border: none;
+  background: #1d9bf0; color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: background 0.15s;
+}
+.search-row button:hover { background: #1a8cd8; }
+.search-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Language toggle */
+.lang-toggle {
+  display: flex; gap: 0; margin-bottom: 10px; width: fit-content;
+}
+.lang-toggle button {
+  padding: 4px 12px; border: 1px solid #333; background: #141414;
+  color: #888; font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.lang-toggle button:first-child { border-radius: 6px 0 0 6px; border-right: none; }
+.lang-toggle button:last-child { border-radius: 0 6px 6px 0; }
+.lang-toggle button.active { background: #1d9bf0; color: #fff; border-color: #1d9bf0; }
+
+/* Scrollable content */
+.content-area { padding: 16px; overflow-y: auto; }
+
+/* Loading */
+.loading { text-align: center; padding: 60px 20px; color: #888; }
+.loading .spinner {
+  width: 28px; height: 28px; border: 2.5px solid #222; border-top-color: #1d9bf0;
+  border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading .sub { font-size: 12px; margin-top: 6px; color: #444; }
+
+/* Error */
+.error { text-align: center; padding: 40px 20px; color: #e65b5b; }
+.error .retry-btn {
+  margin-top: 12px; padding: 6px 16px; border-radius: 8px; border: 1px solid #555;
+  background: #1a1a1a; color: #ccc; cursor: pointer; font-size: 12px;
+}
+
+/* Empty state */
+.empty { text-align: center; padding: 80px 20px; color: #555; }
+.empty .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.2; }
+.empty p { font-size: 13px; line-height: 1.7; }
+
+/* === Profile Card === */
+.profile-card { border-radius: 12px; overflow: hidden; }
+
+/* AI Summary — hero section at top */
+.ai-hero {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 100%);
+  border: 1px solid #1a2a3a; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.ai-hero .category-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.category-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.cat-ai-agent { background: rgba(29,155,240,0.15); color: #4da6ff; }
+.cat-general { background: rgba(255,255,255,0.06); color: #888; }
+.cat-tech { background: rgba(29,155,240,0.15); color: #4da6ff; }
+.cat-crypto { background: rgba(230,212,91,0.12); color: #e6d45b; }
+.cat-design { background: rgba(176,91,230,0.12); color: #c77dff; }
+.cat-startup { background: rgba(91,230,168,0.12); color: #5be6a8; }
+.cat-marketing { background: rgba(230,168,91,0.12); color: #e6a85b; }
+.ai-summary { font-size: 13px; line-height: 1.7; color: #b8c4d0; }
+.ai-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.ai-tags span {
+  padding: 2px 8px; border-radius: 6px; font-size: 10px;
+  background: rgba(255,255,255,0.04); color: #667; border: 1px solid #1a2a3a;
+}
+
+/* Profile info */
+.profile-info {
+  background: #111; border: 1px solid #1a1a1a; border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 12px;
+}
+.profile-row { display: flex; align-items: center; gap: 12px; }
+.profile-row img { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.profile-row .info { flex: 1; min-width: 0; }
+.profile-row .name {
+  font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.profile-row .handle { color: #666; font-size: 12px; }
+.verified-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; background: #1d9bf0; border-radius: 50%;
+  font-size: 9px; color: #fff; flex-shrink: 0;
+}
+.profile-bio { font-size: 12px; color: #888; line-height: 1.5; margin-top: 10px; }
+.profile-meta {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;
+  font-size: 11px; color: #555;
+}
+.profile-meta a { color: #1d9bf0; text-decoration: none; }
+
+/* Stats grid */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+}
+.stat-card {
+  background: #111; border: 1px solid #1a1a1a; border-radius: 10px;
+  padding: 10px 8px; text-align: center;
+}
+.stat-card .value { font-size: 16px; font-weight: 700; color: #fff; }
+.stat-card .label { font-size: 10px; color: #555; margin-top: 3px; line-height: 1.3; }
+
+/* Top tweets */
+.top-tweets-section {
+  background: #111; border: 1px solid #1a1a1a; border-radius: 12px;
+  overflow: hidden;
+}
+.section-header {
+  padding: 12px 16px; font-size: 11px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.8px; font-weight: 600; border-bottom: 1px solid #1a1a1a;
+}
+.tweet-item {
+  padding: 12px 16px; border-bottom: 1px solid #0d0d0d;
+  font-size: 13px; line-height: 1.55; color: #b0b0b0;
+}
+.tweet-item:last-child { border-bottom: none; }
+.tweet-stats {
+  display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: #444;
+}
+.tweet-stats span { display: flex; align-items: center; gap: 3px; }
+
+/* Footer settings */
+.footer { padding: 16px; }
+.settings-toggle {
+  font-size: 11px; color: #333; cursor: pointer; text-align: center;
+  padding: 6px 0; transition: color 0.15s;
+}
+.settings-toggle:hover { color: #666; }
+.settings-form { display: none; margin-top: 8px; }
+.settings-form.open { display: block; }
+.settings-form label { display: block; font-size: 11px; color: #444; margin-bottom: 4px; }
+.settings-form input {
+  width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #222;
+  background: #111; color: #ccc; font-size: 11px; margin-bottom: 8px; outline: none;
+}
+.settings-form input:focus { border-color: #333; }
+.settings-form button {
+  padding: 4px 14px; border-radius: 6px; border: 1px solid #333;
+  background: #1a1a1a; color: #aaa; font-size: 11px; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="search-row">
+    <input type="text" id="handleInput" placeholder="@username" />
+    <button id="analyzeBtn">Analyze</button>
+  </div>
+  <div class="lang-toggle">
+    <button id="langEn" class="active">EN</button>
+    <button id="langZh">CN</button>
+  </div>
+</div>
+
+<div class="content-area" id="content">
+  <div class="empty">
+    <div class="icon">&#128269;</div>
+    <p id="emptyText">Enter a Twitter handle above<br>or click "Analyze" on any x.com profile page</p>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="settings-toggle" id="settingsToggle">Settings</div>
+  <div class="settings-form" id="settingsForm">
+    <label>Auth Token (optional)</label>
+    <input type="text" id="authTokenInput" placeholder="Bearer token for API auth" />
+    <button id="saveSettings">Save</button>
+  </div>
+</div>
+
+<script src="sidepanel.js"></script>
+</body>
+</html>
